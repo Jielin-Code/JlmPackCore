@@ -1,8 +1,8 @@
-JlmPackCoreV1.0(Import library for dll).lib和JlmPackCoreV1.0.dll是x86 windows下的动态库
-JlmPackCoreV1.0.lib是x86 windows下的静态库
+JlmPackCoreV1.0(Import library for dll).lib and JLmpackcoreV1.0.dll are dynamic libraries for x86 windows
+JlmPackCoreV1.0.lib is a static library for x86 windows
 
-JlmPackCoreV1.0.a为x86 linux（如麒麟，ubuntu）下的静态库
-JlmPackCoreV1.0.so为x86 linux（如麒麟，ubuntu）下的动态库
+Jlmpackcore V1.0.a is a static library for x86 linux (such as Kirin, ubuntu)
+Jlmpackcore v1.0.so is a dynamic library for x86 linux (such as Kirin, ubuntu)
 
-JlmPackCoreV1.0(android).a为x86 android下的静态库
-JlmPackCoreV1.0(android).so为x86 android下的动态库
+JlmPackCoreV1.0(android).a is a static library for x86 android
+JlmPackCoreV1.0(android).so is a dynamic library for x86 android
