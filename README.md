@@ -1,0 +1,1 @@
+JlmPackCore is a new compressed package tool library, is an SDK library, support linux, widnows, etc., also supports x86, x64, ARM64 and ARM architecture, the advantage is that you can achieve copyright control and file tracking, and support for limiting users, limiting devices, limiting time and so on.
