@@ -1,3 +1,6 @@
 20240709update
 1:Fixed an issue where the password entered a loop when it was incorrect
 2:Fixed a possible brute force logic error
+20240712update
+1:Modified security vulnerability when password length exceeds 64 bytes.
+2:It is adapted to hash algorithm and symmetric encryption algorithm of java version.
