@@ -1,10 +1,8 @@
+JlmPackCoreV1.0(Import library for dll).lib和JlmPackCoreV1.0.dll是ARM windows下的动态库
+JlmPackCoreV1.0.lib是ARM windows下的静态库
 
-291/5000
-JlmPackCoreV1.0(Import library for dll).lib and JLmpackCoreV1.0.dll are dynamic libraries under ARM windows
-JlmPackCoreV1.0.lib is a static library for ARM windows
+JlmPackCoreV1.0.a为ARM linux（安卓，鸿蒙）下的静态库
+JlmPackCoreV1.0.so为ARM linux（安卓，鸿蒙）下的动态库
 
-Jlmpackcore V1.0.a is a static library under ARM linux (Android, Hongmeng)
-Jlmpackcore V1.0.so is a dynamic library for ARM linux (Android, Hongmeng)
-
-JlmPackCoreV1.0(android).a is a static library under ARM android
-JlmPackCoreV1.0(android).so is a dynamic library for ARM android
+JlmPackCoreV1.0(android).a为ARM  android下的静态库
+JlmPackCoreV1.0(android).so为ARM  android下的动态库
