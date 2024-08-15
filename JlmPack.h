@@ -152,27 +152,38 @@ typedef struct
 	unsigned int InByteArray_Size;
 	unsigned char* OutByteArray;                    // 用于解压和解密译码的临时输出，包括了文件复制等等
 	unsigned int OutByteArray_Size;
-	unsigned char* WriteOrReadBuff;                 // 用于写文件，大小和OutByteArray、InByteArray一致
+	unsigned char* WriteOrReadBuff;                 // 用于读写文件，或外部调用，大小和OutByteArray、InByteArray一致
 	unsigned int WriteOrReadBuff_Size;
+
+	long long effectiveBytes;                       // 在WriteOrReadBuff中译码出有效的字节个数
+	int status;										// status = -1译码完毕或被关闭，status = 0暂停译码，status = 1继续译码
 	/**************************************************************************
 	* 日志输入信息
 	**************************************************************************/
 	JLM_LOG* log;                                   // 日志文件
-
 }VARIABLES;
+
+/**************************************************************************************
+回调函数的参数结构体，可以根据需要自定义，比如写文件、播放等
+***************************************************************************************/
+typedef struct
+{
+	// 定义一个统配指针，用于传递FILE*，char*等等，方便在回调函数中使用
+	void* p;
+	// 请在此处添加对应的变量
+
+	// 比如播放功能，有可能需要回调函数将解码的数据缓存VARIABLES->WriteOrReadBuff中的VARIABLES->effectiveBytes个字节复制给播放缓存
+
+}CALLBACK_VARIABLES;
+
+// 定义JlmPack_ExtractToCache函数的可变参数回调函数，主要是方便外部处理译码后的数据
+// 每次译码的数据存储在var->WriteOrReadBuff中，有效字节长度为var->effectiveBytes
+typedef void (*JLMPACK_CALLBACK)(VARIABLES* Vars, CALLBACK_VARIABLES* callbackVars);
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-	/*************************************************************************************
-	获取授权证书内数字签名的函数
-	输入：
-	VARIABLES* vars
-	返回：
-	Errsign:错误标识，0无错，大于1为错误
-	*************************************************************************************/
-	JLMPACK_API int JlmPack_GetLicense(VARIABLES* vars);
-
 	/*************************************************************************************
 	JLMHA哈希算法函数，根据输入的数据获取长度为OutByteArray_size的哈希值，返回1表示计算成功
 	1、根据InByteArray生成哈希值，RandomByte是随机生成的字节值，HashByteArray的第0个字节用于存放RandomByte的值
@@ -206,6 +217,28 @@ extern "C" {
 	JLMPACK_API int JlmPack_JLMSE(unsigned char* RandomBytes, unsigned int RandomBytes_size, unsigned char* Passwords, unsigned int Passwords_size, unsigned char* InByteArray, unsigned int InByteArray_size, unsigned char* OutByteArray, unsigned int* OutByteArray_size, int model);
 
 	/*************************************************************************************
+	获取授权证书内数字签名的函数
+	输入：
+	VARIABLES* vars
+	返回：
+	Errsign:错误标识，0无错，大于1为错误
+	*************************************************************************************/
+	JLMPACK_API int JlmPack_GetLicense(VARIABLES* vars);
+
+	/*************************************************************************************
+	获取权限值的函数，除了JlmPack_Create函数，其他函数在使用前都必须完成权限检验
+	特别注意：
+	1、编码后jlm文件的路径通过jlmFileUrl传递，必须是带文件名（允许不带后缀.jlm）
+	2、权限值通过vars->rule返回
+	3、权限获取不记录日志
+	输入：
+	VARIABLES*：参数变量
+	返回：
+	Errsign:错误标识
+	*************************************************************************************/
+	JLMPACK_API int JlmPack_GetRule(VARIABLES* vars);
+
+	/*************************************************************************************
 	创建函数，根据参数相关的信息创建一个jlm压缩包
 	特别注意：
 	1、文件或文件夹通过pathList传递
@@ -222,19 +255,6 @@ extern "C" {
 	log中的信息
 	*************************************************************************************/
 	JLMPACK_API int JlmPack_Create(VARIABLES* vars);
-
-	/*************************************************************************************
-	获取权限值的函数，除了JlmPack_Create函数，其他函数在使用前都必须完成权限检验
-	特别注意：
-	1、编码后jlm文件的路径通过jlmFileUrl传递，必须是带文件名（允许不带后缀.jlm）
-	2、权限值通过vars->rule返回
-	3、权限获取不记录日志
-	输入：
-	VARIABLES*：参数变量
-	返回：
-	Errsign:错误标识
-	*************************************************************************************/
-	JLMPACK_API int JlmPack_GetRule(VARIABLES* vars);
 
 	/*************************************************************************************
 	解包函数：输入IdList列表，解压和解密出IdList列表下面的所有文件或文件夹，解压需要做权限控制
@@ -255,6 +275,31 @@ extern "C" {
 	Errsign:错误标识
 	*************************************************************************************/
 	JLMPACK_API int JlmPack_Unpack(VARIABLES* vars);
+
+	/*************************************************************************************
+	解码到缓存的函数：输入IdList[0]，线性解压和解密出IdList[0]对应文件（注意仅仅针对文件有效），
+	将按序解码数据会交替存储到vars->OutByteArray（长度由vars->effectiveBytes1记录）和vars->WriteOrReadBuff（长度由vars->effectiveBytes2记录）
+	逻辑：
+	判断vars->effectiveBytes1是不是为0，将数据译码到vars->OutByteArray中，此时vars->effectiveBytes1不为0，除非已经译码完成了
+	判断vars->effectiveBytes2是不是为0，将数据译码到vars->WriteOrReadBuff中，此时vars->effectiveBytes2不为0，除非已经译码完成了
+	外部程序获取vars->OutByteArray中的数据后，将vars->effectiveBytes1设置为0且vars->status设置为1，于是程序将继续译码到vars->OutByteArray。
+	外部程序获取vars->WriteOrReadBuff中的数据后，将vars->effectiveBytes2设置为0且vars->status设置为1，于是程序将继续译码到vars->WriteOrReadBuff中。
+	特别注意：
+	1、callback为回调函数，该函数需要在外部实现通过JlmPack_ExtractToCache函数回调，callback可以是写文件、播放部分数据等
+	2、void* p为统配指针，可以是FILE*，char*等等
+	3、如果解压整个压缩包，仅需在IdList中只能放文件类型的ID号，否则解码失败
+	4、pathList在本函数中无效，因为本函数不会保留文件
+	5、待解压的JLM压缩包路径通过jlmFileUrl传递，支持jlmFileUrl = XXX_PackX.jlm（程序会自动找到主文件XXX.jlm）
+	6、vars->OutByteArray_Size是指全部vars->OutByteArray的总大小，实际译码的字节长度通过vars->effectiveBytes返回
+	7、其他的通过对应的参数传递
+	安全方案同JlmPack_Unpack函数。
+	输入：
+	VARIABLES*：参数变量
+	返回：
+	Errsign:错误标识
+	*************************************************************************************/
+	// 根据IdList[0]启动译码，并且通过回调函数操作相关的功能
+	JLMPACK_API int JlmPack_ExtractToCache(VARIABLES* vars, JLMPACK_CALLBACK callback, CALLBACK_VARIABLES* callbackVars);
 
 	/*************************************************************************************
 	向Jlm文件中追加新待编码文件的函数，追加的过程不会解密任何文件，仅仅重新组织jlm文件包和修改目录信息
