@@ -4,3 +4,7 @@
 20240712update
 1:Modified security vulnerability when password length exceeds 64 bytes.
 2:It is adapted to hash algorithm and symmetric encryption algorithm of java version.
+20240815update
+1. Fix the problem of decoding duplicate names.
+2. Fix the problem of duplicate unique numbers.
+3, add decoding to the cache function, using callback functions for playback, reading, file reading and other operations.
